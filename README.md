@@ -184,8 +184,6 @@ This pipeline synthesizes ideas from the following works. Please cite the origin
 5. **Optimal Fusion** — Nguyen T, Campbell A, Kumar A, Amponsah E, Fiterau M, Shahriyari L. *Optimal fusion of genotype and drug embeddings in predicting cancer drug response.* Brief Bioinform. 2024;25(3):bbae227. doi:10.1093/bib/bbae227 · [github.com/nguyentr17/drug-cell-fusion](https://github.com/nguyentr17/drug-cell-fusion)
 6. **PASO** — *Anticancer drug response prediction integrating multi-omics pathway-based difference features and multiple deep learning techniques.* PLOS Comput Biol. 2025;21(3):e1012905. doi:10.1371/journal.pcbi.1012905 · [github.com/queryang/PASO](https://github.com/queryang/PASO)
 
-Author lists for the DrugVNN preprint and PASO are omitted here because they were not fully verified; please confirm them from the linked sources before formal citation.
-
 ## License
 
 Released under the MIT License — see [LICENSE](LICENSE).
