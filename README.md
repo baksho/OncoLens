@@ -147,21 +147,23 @@ If the response/omics files are absent, `main.py` prints a clear message and fal
 
 ## Run Order
 
-# 1. install deps (add rdkit only if you'll use the real GDSC2 loader)
+1. install deps (add rdkit only if you'll use the real GDSC2 loader)
+```python
 pip install -r requirements.txt
 pip install rdkit
+```
 
-# 2. (optional) edit the switches at the top of drp/config.py
-#    MODE / CELL_INPUT / FUSION
+2. (optional) edit the switches at the top of `drp/config.py`
+[MODE / CELL_INPUT / FUSION]: #
 
-# 3. reproduce the Demo result (metrics + interpretability readout)
-python -m drp/main.py
+3. reproduce the Demo result (metrics + interpretability readout)
+`python -m drp/main.py`
 
-# 4. reproduce the sweep table (CELL_INPUT x FUSION)
-python -m drp/run_experiment.py --epochs 45 --csv sweep_results.csv
+4. reproduce the sweep table (CELL_INPUT x FUSION)
+`python -m drp/run_experiment.py --epochs 45 --csv sweep_results.csv`
 
-# 5. real data: set the GDSC2_* paths in drp/config.py, then
-python -m drp/main.py
+5. real data: set the GDSC2_* paths in `drp/config.py`, then
+`python -m drp/main.py`
 
 ## Project Structure
 
