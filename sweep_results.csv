@@ -1,0 +1,10 @@
+cell_input,fusion,test_rho,val_rho,train_rho,test_rmse,params
+expression,concat,-0.012,0.023,0.166,0.280,103965
+expression,gated,0.020,0.025,0.164,0.277,107101
+expression,bilinear,0.436,0.494,0.558,0.245,106173
+multiomics,concat,0.091,0.062,0.175,0.283,103965
+multiomics,gated,0.074,0.130,0.092,0.284,107101
+multiomics,bilinear,0.481,0.493,0.559,0.248,106173
+mutation,concat,-0.027,0.023,0.013,0.276,103965
+mutation,gated,-0.070,0.008,0.189,0.281,107101
+mutation,bilinear,0.345,0.404,0.507,0.259,106173

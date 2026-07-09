@@ -1,0 +1,6 @@
+DRUG_NAME,SMILES
+Erlotinib-like,COCCOc1cc2ncnc(Nc3cccc(C#C)c3)c2cc1OCCOC
+Aspirin,CC(=O)Oc1ccccc1C(=O)O
+Ethanol,CCO
+Caffeine,Cn1cnc2c1c(=O)n(C)c(=O)n2C
+Ibuprofen,CC(C)Cc1ccc(C(C)C(=O)O)cc1

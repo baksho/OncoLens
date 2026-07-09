@@ -1,0 +1,8 @@
+# Core (required)
+torch>=2.1
+numpy>=1.24
+pandas>=2.0
+
+# Optional: only needed for Full/Subset mode to parse real SMILES into graphs.
+# The Demo mode and the GO-ontology download do NOT require rdkit.
+# rdkit>=2023.9
