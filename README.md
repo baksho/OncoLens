@@ -1,10 +1,9 @@
-# Holistic Interpretable Drug-Response Pipeline
-
-A single, modular PyTorch pipeline that predicts cancer cell-line drug response while staying interpretable — combining ideas from DrugCell, SparseGO, DRPreter, DrugVNN, the Optimal-Fusion study, and PASO.
+# OncoLens: Holistic Interpretable Drug-Response Pipeline
+An interpretable, modular deep-learning pipeline for cancer drug-response prediction that fuses a Gene-Ontology visible neural network with a graph-based drug encoder — combining the strongest ideas from DrugCell, SparseGO, DRPreter, DrugVNN, the Optimal-Fusion study, and PASO.
 
 ## About
 
-This package predicts a drug-response value (AUC / IC50) for a (cell line, drug) pair and explains *why* via biological subsystems. It keeps DrugCell's interpretable two-branch design but upgrades every weak axis of the original: the drug is encoded from its molecular **graph** (not a frozen fingerprint), the cell is encoded by a **sparse GO Visible Neural Network**, the two branches interact through a **drug-aware gene gate** and a **learned fusion module** (instead of plain concatenation), and predictions are attributed back to GO subsystems with an **RLIPP-style readout**. Everything runs from two plain config switches so you can scale from a seconds-long synthetic demo up to a full GDSC/CTRP training run.
+This package predicts a drug-response value (AUC / IC50) for a (cell line, drug) pair and explains *why* via biological subsystems. It keeps DrugCell's interpretable two-branch design but upgrades every weak axis of the original: the drug is encoded from its molecular **graph** (not a frozen fingerprint), the cell is encoded by a **sparse Gene-Ontology Visible Neural Network**, the two branches interact through a **drug-aware gene gate** and a **learned fusion module** (instead of plain concatenation), and predictions are attributed back to GO subsystems with an **RLIPP-style readout**. Everything runs from two plain config switches so you can scale from a seconds-long synthetic demo up to a full GDSC/CTRP training run.
 
 It is meant as a research scaffold: faithful to the source architectures, readable, and dependency-light (the graph encoder is pure PyTorch — no `torch_geometric`).
 
@@ -25,6 +24,7 @@ flowchart TD
     J --> K["Predicted response<br/>AUC / IC50"]
     C -. "RLIPP + gate readout" .-> L["Interpretability<br/>key subsystems and genes"]
 ```
+The drug-aware gene gate is drawn crossing between branches because it uses the learned drug embedding to reweight genes feeding the VNN; the interpretability readout is a post-hoc analysis of the trained model, not a trained component.
 
 ## Getting Started
 
@@ -67,13 +67,26 @@ FUSION     = "bilinear"    # "concat" | "gated" | "bilinear"
 - **`CELL_INPUT`** selects the pluggable cell-side feature block: continuous gene `expression` (default), combined `multiomics` (expression + mutation + CNV), or binary `mutation` flags.
 - **`FUSION`** selects how the cell and drug embeddings combine. `bilinear` is the default because it cleanly carries the cell x drug interaction.
 
-Edit the variables and re-run `python -m drp.main`.
+Edit the variables and re-run `python -m drp.main`. 
 
 ### Output
 
 Each run prints the dataset summary, a training trace, Spearman / Pearson / RMSE on train/val/test, and an interpretability readout (top GO subsystems by RLIPP, top genes by the drug-aware attention gate).
 
-At the default settings a converged Demo run reaches **test Spearman rho ~ 0.66** (train 0.76, val 0.61). This is on synthetic, deliberately-learnable data — it demonstrates the pipeline trains and attributes signal correctly; it is not a benchmark score against real drug response.
+Reference run — `MODE=Demo`, `CELL_INPUT=expression`, `FUSION=bilinear`, seed 7, 90 epochs, CPU (~88 s, ~106K parameters):
+
+| Split | Spearman rho | Pearson r | RMSE |
+|-------|:------------:|:---------:|:----:|
+| Train | 0.757 | 0.757 | 0.181 |
+| Val   | 0.609 | 0.621 | 0.213 |
+| Test  | 0.663 | 0.664 | 0.206 |
+
+At the default settings a converged Demo run reaches **test Spearman rho ~ 0.66** (train 0.76, val 0.61). The above numbers are on *synthetic, deliberately-learnable* data — it demonstrates the pipeline trains and attributes signal correctly; it is **not** a benchmark score against real drug response, and should not be compared to published DrugCell/SparseGO scores. For reference, DrugCell reported a per-drug median Spearman of roughly 0.37 on real data, which is a harder problem than this synthetic setting.
+
+Two behaviors worth noting from development:
+
+- A stripped dot-product model reaches test rho ~0.93 on this synthetic data, and the sparse GO-VNN + graph drug encoder reach ~0.93 on their own — confirming the encoders are sound and the low-rank signal is learnable.
+- In **Full** mode the real DrugCell GO ontology downloads and parses correctly (3,008 genes, 2,086 subsystems). The GDSC/CCLE portal matrices are frequently unreachable from sandboxed environments; when that happens the pipeline prints a clear message and falls back to a Demo run so you always get an end-to-end result.
 
 ## Reproducible experiments
 
@@ -105,7 +118,7 @@ Two things this shows, both with caveats:
 
 ## Real data (Full / Subset)
 
-The GO hierarchy and gene index are fetched from the public DrugCell GitHub mirror (`raw.githubusercontent.com`), which is reachable in most environments — a Full run confirmed it loads the genuine ontology (3,008 genes, 2,086 subsystems).
+The GO hierarchy and gene index are fetched from the public DrugCell GitHub mirror (`raw.githubusercontent.com`), which is reachable in most environments. The pharmacogenomic response matrix and CCLE omics live on portals `drugcell.ucsd.edu` and `DepMap` respectively. Point `config.SOURCES['drugcell_all']` and `config.SOURCES['ccle_expression']` at local files (or run where the portals are reachable). Dataset access is governed by the terms of GDSC, CTRP, CCLE/DepMap, and the DrugCell project.
 
 ### GDSC2 loader
 
@@ -156,6 +169,23 @@ sample_data/        # synthetic GDSC2-format files for testing the loader
 - The `Demo` numbers reflect a synthetic generative process designed to be *learnable*, not to mimic real-data difficulty; they show the pipeline trains and attributes signal correctly, not a benchmark score.
 - The synthetic response is intentionally low-rank, which is the same assumption DrugCell-style models rely on; a full-rank signal would not pass through the model's compact root embedding.
 - The real GDSC2 training path (beyond ontology loading) has been exercised on synthetic sample files only; run it on your real files to get real numbers.
-- The drug-aware gene gate slightly *hurt* on synthetic data (signal there is spread across all genes, so gating can only remove it). On real expression data, where only some genes matter per drug, it is expected to help — but that is a hypothesis to test. Tune its strength via `beta` in `components.py`.
+- The drug-aware gene gate slightly *reduces* accuracy on the synthetic data (where signal is spread across all genes) but is expected to help on real expression data where only some genes matter per drug; its strength is the `beta` argument in `components.py`.
 - The interpretability readout is post-hoc analysis of a trained model, not a trained component.
 - The sparse VNN processes subsystems in a Python loop over the hierarchy; clear and faithful, but not the fastest possible implementation for very large ontologies.
+
+## References
+
+This pipeline synthesizes ideas from the following works. Please cite the original papers when using the corresponding components.
+
+1. **DrugCell** — Kuenzi BM, Park J, Fong SH, Sanchez KS, Lee J, Kreisberg JF, Ma J, Ideker T. *Predicting Drug Response and Synergy Using a Deep Learning Model of Human Cancer Cells.* Cancer Cell. 2020;38(5):672–684.e6. doi:10.1016/j.ccell.2020.09.014 · [github.com/idekerlab/DrugCell](https://github.com/idekerlab/DrugCell)
+2. **DRPreter** — Shin J, Piao Y, Bang D, Kim S, Jo K. *DRPreter: Interpretable Anticancer Drug Response Prediction Using Knowledge-Guided Graph Neural Networks and Transformer.* Int J Mol Sci. 2022;23(22):13919. doi:10.3390/ijms232213919 · [github.com/babaling/DRPreter](https://github.com/babaling/DRPreter)
+3. **SparseGO** — Sada Del Real K, Rubio A. *Discovering the mechanism of action of drugs with a sparse explainable network.* eBioMedicine. 2023;95:104767. doi:10.1016/j.ebiom.2023.104767 · [github.com/KatynaSada/SparseGO](https://github.com/KatynaSada/SparseGO)
+4. **DrugVNN** — *Interpretable Drug Response Prediction through Molecule Structure-aware and Knowledge-Guided Visible Neural Network.* bioRxiv 2024 (preprint, not peer-reviewed). doi:10.1101/2024.02.07.579280 · [github.com/biomed-AI/DrugVNN](https://github.com/biomed-AI/DrugVNN)
+5. **Optimal Fusion** — Nguyen T, Campbell A, Kumar A, Amponsah E, Fiterau M, Shahriyari L. *Optimal fusion of genotype and drug embeddings in predicting cancer drug response.* Brief Bioinform. 2024;25(3):bbae227. doi:10.1093/bib/bbae227 · [github.com/nguyentr17/drug-cell-fusion](https://github.com/nguyentr17/drug-cell-fusion)
+6. **PASO** — *Anticancer drug response prediction integrating multi-omics pathway-based difference features and multiple deep learning techniques.* PLOS Comput Biol. 2025;21(3):e1012905. doi:10.1371/journal.pcbi.1012905 · [github.com/queryang/PASO](https://github.com/queryang/PASO)
+
+Author lists for the DrugVNN preprint and PASO are omitted here because they were not fully verified; please confirm them from the linked sources before formal citation.
+
+## License
+
+Released under the MIT License — see [LICENSE](LICENSE).
