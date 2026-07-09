@@ -153,8 +153,7 @@ pip install -r requirements.txt
 pip install rdkit
 ```
 
-2. (optional) edit the switches at the top of `drp/config.py`
-[MODE / CELL_INPUT / FUSION]: #
+2. (optional) edit the switches at the top of `drp/config.py` - [MODE / CELL_INPUT / FUSION]
 
 3. reproduce the Demo result (metrics + interpretability readout)
 `python -m drp/main.py`
