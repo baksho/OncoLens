@@ -9,6 +9,8 @@ It is meant as a research scaffold: faithful to the source architectures, readab
 
 ## Architecture
 
+### Block diagram
+
 ```mermaid
 flowchart TD
     A["Cell-line omics<br/>expression / multiomics / mutation"] --> B["Pathway mapping<br/>genes to GO subsystems"]
@@ -25,6 +27,10 @@ flowchart TD
     C -. "RLIPP + gate readout" .-> L["Interpretability<br/>key subsystems and genes"]
 ```
 The drug-aware gene gate is drawn crossing between branches because it uses the learned drug embedding to reweight genes feeding the VNN; the interpretability readout is a post-hoc analysis of the trained model, not a trained component.
+
+### Diagram
+
+![alt text](https://github.com/baksho/OncoLens/blob/main/holistic_drp_architecture.png?raw=true)
 
 ## Getting Started
 
