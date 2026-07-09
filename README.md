@@ -45,7 +45,7 @@ pip install -r requirements.txt
 From the project root:
 
 ```bash
-python -m drp.main
+python -m drp/main.py
 ```
 
 That runs the default configuration (Demo mode), which needs no download and trains in ~1-2 minutes on CPU.
@@ -67,9 +67,9 @@ FUSION     = "bilinear"    # "concat" | "gated" | "bilinear"
 - **`CELL_INPUT`** selects the pluggable cell-side feature block: continuous gene `expression` (default), combined `multiomics` (expression + mutation + CNV), or binary `mutation` flags.
 - **`FUSION`** selects how the cell and drug embeddings combine. `bilinear` is the default because it cleanly carries the cell x drug interaction.
 
-Edit the variables and re-run `python -m drp.main`. 
+Edit the variables and re-run `python -m drp/main.py`. 
 
-### Output
+## Reproducible Results
 
 Each run prints the dataset summary, a training trace, Spearman / Pearson / RMSE on train/val/test, and an interpretability readout (top GO subsystems by RLIPP, top genes by the drug-aware attention gate).
 
@@ -88,12 +88,12 @@ Two behaviors worth noting from development:
 - A stripped dot-product model reaches test rho ~0.93 on this synthetic data, and the sparse GO-VNN + graph drug encoder reach ~0.93 on their own — confirming the encoders are sound and the low-rank signal is learnable.
 - In **Full** mode the real DrugCell GO ontology downloads and parses correctly (3,008 genes, 2,086 subsystems). The GDSC/CCLE portal matrices are frequently unreachable from sandboxed environments; when that happens the pipeline prints a clear message and falls back to a Demo run so you always get an end-to-end result.
 
-## Reproducible experiments
+### Demo experiments
 
 `run_experiment.py` sweeps every `CELL_INPUT` x `FUSION` combination in Demo mode on a fixed seed and tabulates the result:
 
 ```bash
-python -m drp.run_experiment --epochs 45 --csv sweep_results.csv
+python -m drp/run_experiment.py --epochs 45 --csv sweep_results.csv
 # restrict to one cell input (faster): --cell-input expression
 ```
 
@@ -116,7 +116,7 @@ Two things this shows, both with caveats:
 - **Bilinear fusion dominates** on this data. That is partly by construction: the synthetic response is a dot-product interaction, which the bilinear layer captures directly and concat/gated must learn indirectly (they may catch up with more epochs, and on real data the gap can narrow). It still demonstrates that fusion choice matters.
 - **Cell-input ordering is multiomics >= expression > mutation.** This matches the biological intuition (richer input, more signal; binary mutation is thinnest), but on synthetic data it is suggestive only — the multiomics channels here derive from the same latent, so do not read the gap as a real-data effect size.
 
-## Real data (Full / Subset)
+### Real data (Full / Subset)
 
 The GO hierarchy and gene index are fetched from the public DrugCell GitHub mirror (`raw.githubusercontent.com`), which is reachable in most environments. The pharmacogenomic response matrix and CCLE omics live on portals `drugcell.ucsd.edu` and `DepMap` respectively. Point `config.SOURCES['drugcell_all']` and `config.SOURCES['ccle_expression']` at local files (or run where the portals are reachable). Dataset access is governed by the terms of GDSC, CTRP, CCLE/DepMap, and the DrugCell project.
 
@@ -132,7 +132,7 @@ GDSC2_EXPRESSION_CSV  = "path/to/expression_matrix.csv"   # genes x cell lines
 GDSC2_DRUG_SMILES_CSV = "path/to/drug_smiles.csv"         # DRUG_NAME,SMILES
 ```
 
-Then `python -m drp.main`. The loader:
+Then `python -m drp/main.py`. The loader:
 
 - reads the GDSC2 fitted dose-response CSV (label column `AUC` by default; set `GDSC2_TARGET_IS_LN_IC50=True` to use and squash `LN_IC50`),
 - aligns the expression matrix to the DrugCell gene order (missing genes -> 0), z-scoring per gene,
@@ -144,6 +144,25 @@ Column names live in `GDSC2Columns` in `real_data.py` and are easy to edit — G
 A tiny **synthetic sample** in this exact schema ships under `sample_data/` so you can exercise the loader without the real files. Those values are random — they test parsing / alignment / featurization only, not model accuracy. Only the `expression` cell input is wired from these three files; `mutation` / `multiomics` need their own matrices (the loader raises a message explaining what to add).
 
 If the response/omics files are absent, `main.py` prints a clear message and falls back to a Demo run so you always get an end-to-end result.
+
+## Run Order
+
+1. install deps (add rdkit only if you'll use the real GDSC2 loader)
+```python
+pip install -r requirements.txt
+pip install rdkit
+```
+
+2. (optional) edit the switches at the top of `drp/config.py` - [MODE / CELL_INPUT / FUSION]
+
+3. reproduce the Demo result (metrics + interpretability readout)
+`python -m drp/main.py`
+
+4. reproduce the sweep table (CELL_INPUT x FUSION)
+`python -m drp/run_experiment.py --epochs 45 --csv sweep_results.csv`
+
+5. real data: set the GDSC2_* paths in `drp/config.py`, then
+`python -m drp/main.py`
 
 ## Project Structure
 
@@ -180,11 +199,9 @@ This pipeline synthesizes ideas from the following works. Please cite the origin
 1. **DrugCell** — Kuenzi BM, Park J, Fong SH, Sanchez KS, Lee J, Kreisberg JF, Ma J, Ideker T. *Predicting Drug Response and Synergy Using a Deep Learning Model of Human Cancer Cells.* Cancer Cell. 2020;38(5):672–684.e6. doi:10.1016/j.ccell.2020.09.014 · [github.com/idekerlab/DrugCell](https://github.com/idekerlab/DrugCell)
 2. **DRPreter** — Shin J, Piao Y, Bang D, Kim S, Jo K. *DRPreter: Interpretable Anticancer Drug Response Prediction Using Knowledge-Guided Graph Neural Networks and Transformer.* Int J Mol Sci. 2022;23(22):13919. doi:10.3390/ijms232213919 · [github.com/babaling/DRPreter](https://github.com/babaling/DRPreter)
 3. **SparseGO** — Sada Del Real K, Rubio A. *Discovering the mechanism of action of drugs with a sparse explainable network.* eBioMedicine. 2023;95:104767. doi:10.1016/j.ebiom.2023.104767 · [github.com/KatynaSada/SparseGO](https://github.com/KatynaSada/SparseGO)
-4. **DrugVNN** — *Interpretable Drug Response Prediction through Molecule Structure-aware and Knowledge-Guided Visible Neural Network.* bioRxiv 2024 (preprint, not peer-reviewed). doi:10.1101/2024.02.07.579280 · [github.com/biomed-AI/DrugVNN](https://github.com/biomed-AI/DrugVNN)
+4. **DrugVNN** — Xie J, Zhang Z, Li Y, Rao J, Yang . *Interpretable Drug Response Prediction through Molecule Structure-aware and Knowledge-Guided Visible Neural Network.* bioRxiv 2024 (preprint, not peer-reviewed). doi:10.1101/2024.02.07.579280 · [github.com/biomed-AI/DrugVNN](https://github.com/biomed-AI/DrugVNN)
 5. **Optimal Fusion** — Nguyen T, Campbell A, Kumar A, Amponsah E, Fiterau M, Shahriyari L. *Optimal fusion of genotype and drug embeddings in predicting cancer drug response.* Brief Bioinform. 2024;25(3):bbae227. doi:10.1093/bib/bbae227 · [github.com/nguyentr17/drug-cell-fusion](https://github.com/nguyentr17/drug-cell-fusion)
-6. **PASO** — *Anticancer drug response prediction integrating multi-omics pathway-based difference features and multiple deep learning techniques.* PLOS Comput Biol. 2025;21(3):e1012905. doi:10.1371/journal.pcbi.1012905 · [github.com/queryang/PASO](https://github.com/queryang/PASO)
-
-Author lists for the DrugVNN preprint and PASO are omitted here because they were not fully verified; please confirm them from the linked sources before formal citation.
+6. **PASO** — Wu Y, Chen M, Qin Y. *Anticancer drug response prediction integrating multi-omics pathway-based difference features and multiple deep learning techniques.* PLOS Comput Biol. 2025;21(3):e1012905. doi:10.1371/journal.pcbi.1012905 · [github.com/queryang/PASO](https://github.com/queryang/PASO)
 
 ## License
 
